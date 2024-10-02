@@ -5,12 +5,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
-    $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $username, $password);
-    if ($stmt->execute()) {
-        header("Location: login.php");
+    // Check if the username already exists
+    $check_stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
+    $check_stmt->bind_param("s", $username);
+    $check_stmt->execute();
+    $result = $check_stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $error = "Username already exists. Please choose a different username.";
     } else {
-        $error = "Registration failed.";
+        // Proceed with registration
+        $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+        $stmt->bind_param("ss", $username, $password);
+        if ($stmt->execute()) {
+            header("Location: login.php");
+            exit(); // Ensure no further code is executed after redirection
+        } else {
+            $error = "Registration failed. Please try again.";
+        }
     }
 }
 ?>
